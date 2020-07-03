@@ -15,7 +15,7 @@
         <el-form-item label="起始时间" prop="date">
           <!--<el-input v-model="addForm.publishDate"></el-input>-->
           <el-date-picker
-            v-model="beginDate"
+            v-model="filters.beginDate"
             name="beginDate"
             type="date"
             placeholder="选择日期"
@@ -26,7 +26,7 @@
         <el-form-item label="终止时间" prop="date">
           <!--<el-input v-model="addForm.publishDate"></el-input>-->
           <el-date-picker
-            v-model="overDate"
+            v-model="filters.overDate"
             name="overDate"
             type="date"
             placeholder="选择日期"
@@ -35,19 +35,17 @@
           ></el-date-picker>
         </el-form-item>
 
+        <el-form-item>
+          <el-button type="primary" @click="retrieveStatementListByRangeDate">查询</el-button>
+        </el-form-item>
 <!--起止时间查询结束-->
 
 
-        <el-form-item>
-          <el-button type="primary" @click="retrieveStatement">查询</el-button>
-        </el-form-item>
-
-
-
+<!--单日查询开始-->
         <el-form-item label="" prop="date">
           <!--<el-input v-model="addForm.publishDate"></el-input>-->
           <el-date-picker
-            v-model="overDate"
+            v-model="filters.singleDate"
             name="overDate"
             type="date"
             placeholder="选择日期"
@@ -56,8 +54,12 @@
           ></el-date-picker>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="retrieveStatement">查询</el-button>
+          <el-button type="primary" @click="retrieveStatementListBySingleDate">查询</el-button>
         </el-form-item>
+<!--单日查询结束-->
+
+
+
         <el-form-item>
           <el-button type="primary" @click="handleAdd">新增</el-button>
         </el-form-item>
@@ -141,38 +143,6 @@
         style="float: right;"
       ></el-pagination>
     </el-col>
-
-
-
-<!--*************查询对话开始***************-->
-<!--    <el-dialog
-      title="查询结果"
-      :visible.sync="dialogCreateVisible"
-      style="text-align: left"
-    >
-      <el-form
-        :rules="findRules"
-        ref="find"
-        :model="find"
-        :label-width="statementLabelWidth"
-      >
-        &lt;!&ndash;使用表格&ndash;&gt;
-
-      </el-form>
-
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="createReset">取消</el-button>
-        <el-button
-          @click.native="createSubmit"
-          :loading="addLoading"
-          type="primary"
-        >确定</el-button
-        >
-      </div>
-    </el-dialog>-->
-<!--************查询对话结束***************-->
-
-
 
 
     <el-dialog
@@ -264,12 +234,12 @@ export default {
   methods: {
     handleCurrentChange(val) {
       this.currentPage = val
-      this.retrieveStatement()
+      this.retrieveStatementListByRangeDate()
     },
 
     handleSizeChange(val) {
       this.pageSize = val
-      this.retrieveStatement()
+      this.retrieveStatementListByRangeDate()
     },
 
     handleFileChange(event, type) {
@@ -325,7 +295,7 @@ export default {
               // addPara.append('attachment', this.statement.attachment)
 
               this.$axios
-                .post('http://localhost:80/statement', this.statement)
+                .post('http://localhost:9080/statement/', this.statement)
                 .then(res => {
                   console.log(res.data)
                   this.addLoading = false
@@ -334,7 +304,7 @@ export default {
                     message: '保存成功!'
                   })
                   this.dialogCreateVisible = false
-                  this.retrieveStatement()
+                  this.retrieveStatementListByRangeDate()
                 })
                 .catch(err => {
                   console.log(err)
@@ -353,15 +323,36 @@ export default {
       })
     },
 
-    retrieveStatement() {
+    retrieveStatementListByRangeDate() {
       let para = new URLSearchParams()
-      para.append('userName', this.filters.reporter)
+      para.append('beginDate', this.filters.beginDate)
+      para.append('overDate', this.filters.overDate)
       para.append('currentPage', this.currentPage)
       para.append('pageSize', this.pageSize)
       this.listLoading = true
 
       this.$axios
-        .get('http://localhost:80/statement', {
+        .get('http://localhost:9080/statement/beginDate', {
+          params: para
+        })
+        .then(res => {
+          this.total = res.data.total
+          this.statements = res.data.rows
+          this.listLoading = false
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    },
+    retrieveStatementListBySingleDate(){
+      let para = new URLSearchParams()
+      para.append('singleDate', this.filters.singleDate)
+      para.append('currentPage', this.currentPage)
+      para.append('pageSize', this.pageSize)
+      this.listLoading = true
+
+      this.$axios
+        .get('http://localhost:9080/statement/singleDate', {
           params: para
         })
         .then(res => {
@@ -397,7 +388,7 @@ export default {
               })
             }
 
-            this.retrieveStatement()
+            this.retrieveStatementListByRangeDate()
             this.listLoading = false
           })
           .catch(err => {
@@ -412,7 +403,7 @@ export default {
   },
 
   mounted() {
-    this.retrieveStatement()
+    this.retrieveStatementListByRangeDate()
   }
 }
 </script>
