@@ -182,6 +182,8 @@
           ></el-input>
         </el-form-item>
         <el-form-item label="附件" prop="attachment">
+
+<!--这里点击选中之后，选中的是啥？是文件本身数据还是路径？亦或是二者兼有？-->
           <input type="file" @change="handleFileChange($event, 'attachment')" />
         </el-form-item>
       </el-form>
@@ -195,6 +197,65 @@
         >
       </div>
     </el-dialog>
+
+
+//////编辑///////
+<el-dialog
+      title="编辑工作报告"
+      :visible.sync="dialogCreateVisible"
+      style="text-align: left"
+    >
+      <el-form
+        :rules="statementRules"
+        ref="statement"
+        :model="statement"
+        :label-width="statementLabelWidth"
+      >
+        <el-form-item label="报告日期" prop="date">
+          <!--<el-input v-model="addForm.publishDate"></el-input>-->
+          <el-date-picker
+            v-model="statement.date"
+            name="date"
+            type="date"
+            placeholder="选择日期"
+            format="yyyyMMdd"
+            value-format="yyyyMMdd"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item label="标题" prop="title">
+          <el-input
+            v-model="statement.title"
+            name="title"
+            auto-complete="off"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="内容" prop="content">
+          <el-input
+            type="textarea"
+            :rows="7"
+            v-model="statement.content"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="附件" prop="attachment">
+
+<!--这里点击选中之后，选中的是啥？是文件本身数据还是路径？亦或是二者兼有？-->
+          <input type="file" @change="handleFileChange($event, 'attachment')" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="createReset">取消</el-button>
+        <el-button
+          @click.native="createSubmit"
+          :loading="addLoading"
+          type="primary"
+        >确定</el-button
+        >
+      </div>
+    </el-dialog>
+/////////////////
+
+
+
   </section>
 </template>
 
@@ -241,7 +302,7 @@ export default {
       this.pageSize = val
       this.retrieveStatementListByRangeDate()
     },
-
+//将文件写入根目录
     handleFileChange(event, type) {
       console.log(this.statement[type])
       this.addLoading = true
@@ -255,7 +316,7 @@ export default {
       formData.append('file', event.target.files[0])
 
       this.$axios
-        .post('http://localhost:80/attachment', formData, config)
+        .post('http://localhost:9080/attachment', formData, config)
         .then(res => {
           this.statement[type] = res.data
           console.log(res.data)
@@ -280,7 +341,7 @@ export default {
         attachment: ''
       }
     },
-
+//毫无疑问，这里提交的对象是数据库
     createSubmit() {
       this.$refs.statement.validate(valid => {
         if (valid) {
@@ -293,9 +354,9 @@ export default {
               // addPara.append('title', this.statement.title)
               // addPara.append('content', this.statement.content)
               // addPara.append('attachment', this.statement.attachment)
-
+//传递statement，写入数据库
               this.$axios
-                .post('http://localhost:9080/statement/', this.statement)
+                .post('http://localhost:9080/statement/add', this.statement)
                 .then(res => {
                   console.log(res.data)
                   this.addLoading = false
@@ -322,6 +383,54 @@ export default {
         }
       })
     },
+
+
+////////////////////////
+    updateStatementById() {
+          this.$refs.statement.validate(valid => {
+            if (valid) {
+              this.$confirm('确认更新？', '提示', {})
+                .then(() => {
+                  this.addLoading = true
+
+                  // let addPara = new URLSearchParams()
+                  // addPara.append('date', this.statement.date)
+                  // addPara.append('title', this.statement.title)
+                  // addPara.append('content', this.statement.content)
+                  // addPara.append('attachment', this.statement.attachment)
+    //传递statement，写入数据库
+                  this.$axios
+                    .post('http://localhost:9080/statement/edict', this.statement)
+                    .then(res => {
+                      console.log(res.data)
+                      this.addLoading = false
+                      this.$message({
+                        type: 'success',
+                        message: '更新成功!'
+                      })
+                      this.dialogCreateVisible = false
+                      this.retrieveStatementListByRangeDate()
+                    })
+                    .catch(err => {
+                      console.log(err)
+                    })
+                })
+                .catch(() => {
+                  this.$message({
+                    type: 'info',
+                    message: '已取消'
+                  })
+                })
+            } else {
+              console.log('error')
+              return false
+            }
+          })
+        },
+////////////////////////
+
+
+
 
     retrieveStatementListByRangeDate() {
       let para = new URLSearchParams()
@@ -372,7 +481,7 @@ export default {
         this.listLoading = true
 
         this.$axios
-          .delete('http://localhost:80/statement/' + row.id, {})
+          .delete('http://localhost:9080/statement/delete' + row.id, {})
           .then(res => {
             let isSuccess = res.data.success
 
