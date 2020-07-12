@@ -244,7 +244,7 @@
                 .get('http://localhost:9080/user',{params:para})
 
                 .then(res =>{
-                  cons-ole.log(res.data)
+                  console.log(res.data)
                   if(res.data.success){
                     this.$router.push('/helloworld')
                   }else{

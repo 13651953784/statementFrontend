@@ -104,7 +104,7 @@
         <el-table-column prop="attachment" label="附件" min-width="200">
           <template slot-scope="scope">
             <a
-              :href="'http://localhost:80/attachment/' + scope.row.attachment"
+              :href="'http://localhost:9080/attachment/' + scope.row.attachment"
               target="_blank"
               class="buttonText"
             >{{ scope.row.attachment }}</a
@@ -199,7 +199,7 @@
     </el-dialog>
 
 
-//////编辑///////
+<!--编辑-->
 <el-dialog
       title="编辑工作报告"
       :visible.sync="dialogCreateVisible"
@@ -252,7 +252,7 @@
         >
       </div>
     </el-dialog>
-/////////////////
+
 
 
 
@@ -302,7 +302,7 @@ export default {
       this.pageSize = val
       this.retrieveStatementListByRangeDate()
     },
-//将文件写入根目录
+  //将文件写入根目录
     handleFileChange(event, type) {
       console.log(this.statement[type])
       this.addLoading = true
@@ -354,7 +354,7 @@ export default {
               // addPara.append('title', this.statement.title)
               // addPara.append('content', this.statement.content)
               // addPara.append('attachment', this.statement.attachment)
-//传递statement，写入数据库
+      //传递statement，写入数据库
               this.$axios
                 .post('http://localhost:9080/statement/add', this.statement)
                 .then(res => {
@@ -385,7 +385,7 @@ export default {
     },
 
 
-////////////////////////
+///////////更新/////////////
     updateStatementById() {
           this.$refs.statement.validate(valid => {
             if (valid) {
@@ -429,9 +429,29 @@ export default {
         },
 ////////////////////////
 
+//查询所有
+    retrieveStatement() {
+      let para = new URLSearchParams()
+      para.append('userName', this.filters.reporter)
+      para.append('currentPage', this.currentPage)
+      para.append('pageSize', this.pageSize)
+      this.listLoading = true
 
+      this.$axios
+        .get('http://localhost:9080/statement/findAll', {
+          params: para
+        })
+        .then(res => {
+          this.total = res.data.total
+          this.statements = res.data.rows
+          this.listLoading = false
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    },
 
-
+//起始时间查询
     retrieveStatementListByRangeDate() {
       let para = new URLSearchParams()
       para.append('beginDate', this.filters.beginDate)
@@ -453,6 +473,10 @@ export default {
           console.log(err)
         })
     },
+
+
+
+//单日查询
     retrieveStatementListBySingleDate(){
       let para = new URLSearchParams()
       para.append('singleDate', this.filters.singleDate)
@@ -474,14 +498,18 @@ export default {
         })
     },
 
+
+
+//根据ID删除
     deleteStatementById(index, row) {
       this.$confirm('确定删除吗？ ', '提示', {
         type: 'warning'
       }).then(() => {
         this.listLoading = true
-
+        var rowId = row.id
         this.$axios
-          .delete('http://localhost:9080/statement/delete' + row.id, {})
+          .delete('http://localhost:9080/statement/delete' + rowId, {})
+          //.get('http://localhost:9080/statement/delete' + rowId, {})
           .then(res => {
             let isSuccess = res.data.success
 
