@@ -123,7 +123,7 @@
             <el-button
               size="mini"
               type="danger"
-              @click="updateStatementById(scope.$index, scope.row)"
+              @click="handleUpdate"
             >编辑</el-button
             >
           </template>
@@ -182,8 +182,6 @@
           ></el-input>
         </el-form-item>
         <el-form-item label="附件" prop="attachment">
-
-<!--这里点击选中之后，选中的是啥？是文件本身数据还是路径？亦或是二者兼有？-->
           <input type="file" @change="handleFileChange($event, 'attachment')" />
         </el-form-item>
       </el-form>
@@ -198,11 +196,9 @@
       </div>
     </el-dialog>
 
-
-<!--编辑-->
 <el-dialog
       title="编辑工作报告"
-      :visible.sync="dialogCreateVisible"
+      :visible.sync="dialogUpdateVisible"
       style="text-align: left"
     >
       <el-form
@@ -237,22 +233,19 @@
           ></el-input>
         </el-form-item>
         <el-form-item label="附件" prop="attachment">
-
-<!--这里点击选中之后，选中的是啥？是文件本身数据还是路径？亦或是二者兼有？-->
           <input type="file" @change="handleFileChange($event, 'attachment')" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="createReset">取消</el-button>
         <el-button
-          @click.native="createSubmit"
+          @click.native="updateSubmit"
           :loading="addLoading"
           type="primary"
         >确定</el-button
         >
       </div>
     </el-dialog>
-
 
 
 
@@ -288,22 +281,56 @@ export default {
         ]
       },
       dialogCreateVisible: false,
+      dialogUpdateVisible: false,
       statementLabelWidth: '80px',
       addLoading: false
     }
   },
+
+
+//*****填充方法*****/
   methods: {
     handleCurrentChange(val) {
       this.currentPage = val
-      this.retrieveStatementListByRangeDate()
+      this.retrieveAllStatementList()
     },
 
     handleSizeChange(val) {
       this.pageSize = val
-      this.retrieveStatementListByRangeDate()
+      this.retrieveAllStatementList()
     },
-  //将文件写入根目录
-    handleFileChange(event, type) {
+
+//添加+编辑--置空
+    createReset() {
+      this.dialogCreateVisible = false
+      this.dialogUpdateVisible = false
+      this.$refs.statement.resetFields()
+    },
+
+//新增--设置默认值
+    handleAdd() {
+      this.dialogCreateVisible = true
+      this.statement = {
+        date: '',
+        title: '',
+        content: '',
+        attachment: ''
+      }
+    },
+//更新--设置默认值
+    handleUpdate() {
+      this.dialogUpdateVisible = true
+      this.statement = {
+        date: '',
+        title: '',
+        content: '',
+        attachment: ''
+      }
+    },
+
+
+//添加 + 编辑  --文件按钮--本地
+  handleFileChange(event, type) {
       console.log(this.statement[type])
       this.addLoading = true
       let config = {
@@ -327,21 +354,7 @@ export default {
       this.addLoading = false
     },
 
-    createReset() {
-      this.dialogCreateVisible = false
-      this.$refs.statement.resetFields()
-    },
-
-    handleAdd() {
-      this.dialogCreateVisible = true
-      this.statement = {
-        date: '',
-        title: '',
-        content: '',
-        attachment: ''
-      }
-    },
-//毫无疑问，这里提交的对象是数据库
+//添加--确定按钮--数据库
     createSubmit() {
       this.$refs.statement.validate(valid => {
         if (valid) {
@@ -354,7 +367,7 @@ export default {
               // addPara.append('title', this.statement.title)
               // addPara.append('content', this.statement.content)
               // addPara.append('attachment', this.statement.attachment)
-      //传递statement，写入数据库
+
               this.$axios
                 .post('http://localhost:9080/statement/add', this.statement)
                 .then(res => {
@@ -365,7 +378,7 @@ export default {
                     message: '保存成功!'
                   })
                   this.dialogCreateVisible = false
-                  this.retrieveStatementListByRangeDate()
+                  this.retrieveAllStatementList()
                 })
                 .catch(err => {
                   console.log(err)
@@ -384,55 +397,89 @@ export default {
       })
     },
 
+//更新--文件--添加已合并
 
-///////////更新/////////////
-    updateStatementById() {
-          this.$refs.statement.validate(valid => {
-            if (valid) {
-              this.$confirm('确认更新？', '提示', {})
-                .then(() => {
-                  this.addLoading = true
+//更新--根据ID
+    updateStatementById(index, row) {
+      this.$confirm('确定更新吗？ ', '提示', {
+        type: 'warning'
+      }).then(() => {
+        this.listLoading = true
 
-                  // let addPara = new URLSearchParams()
-                  // addPara.append('date', this.statement.date)
-                  // addPara.append('title', this.statement.title)
-                  // addPara.append('content', this.statement.content)
-                  // addPara.append('attachment', this.statement.attachment)
-    //传递statement，写入数据库
-                  this.$axios
-                    .post('http://localhost:9080/statement/edict', this.statement)
-                    .then(res => {
-                      console.log(res.data)
-                      this.addLoading = false
-                      this.$message({
-                        type: 'success',
-                        message: '更新成功!'
-                      })
-                      this.dialogCreateVisible = false
-                      this.retrieveStatementListByRangeDate()
-                    })
-                    .catch(err => {
-                      console.log(err)
-                    })
-                })
-                .catch(() => {
-                  this.$message({
-                    type: 'info',
-                    message: '已取消'
-                  })
-                })
+        this.$axios
+          //.delete('http://localhost:9080/statement/update' + row.id, {})
+          .post('http://localhost:9080/statement/update' + row.id, this.statement)
+          .then(res => {
+            let isSuccess = res.data.success
+
+            if (isSuccess == true) {
+              this.$message({
+                message: '更新成功',
+                type: 'success'
+              })
             } else {
-              console.log('error')
-              return false
+              this.$message({
+                message: res.data.message,
+                type: 'error'
+              })
             }
-          })
-        },
-////////////////////////
 
-//查询所有
-    retrieveStatement() {
+            this.retrieveAllStatementList()
+            this.listLoading = false
+          })
+          .catch(err => {
+            console.log(err)
+          })
+      })
+    },
+//更新--数据库
+    updateSubmit() {
+      this.$refs.statement.validate(valid => {
+        if (valid) {
+          this.$confirm('确认提交？', '提示', {})
+            .then(() => {
+              this.addLoading = true
+
+              // let addPara = new URLSearchParams()
+              // addPara.append('date', this.statement.date)
+              // addPara.append('title', this.statement.title)
+              // addPara.append('content', this.statement.content)
+              // addPara.append('attachment', this.statement.attachment)
+
+              this.$axios
+                .post('http://localhost:9080/statement/update' + row.id, this.statement)
+                .then(res => {
+                  console.log(res.data)
+                  this.addLoading = false
+                  this.$message({
+                    type: 'success',
+                    message: '编辑成功!'
+                  })
+                  this.dialogUpdateVisible = false
+                  this.retrieveAllStatementList()
+                })
+                .catch(err => {
+                  console.log(err)
+                })
+            })
+            .catch(() => {
+              this.$message({
+                type: 'info',
+                message: '已取消'
+              })
+            })
+        } else {
+          console.log('error')
+          return false
+        }
+      })
+    },
+  
+
+//查询--所有列表展示
+  retrieveAllStatementList(){
       let para = new URLSearchParams()
-      para.append('userName', this.filters.reporter)
+      para.append('singleDate', this.filters.singleDate)
       para.append('currentPage', this.currentPage)
       para.append('pageSize', this.pageSize)
       this.listLoading = true
@@ -451,7 +498,9 @@ export default {
         })
     },
 
-//起始时间查询
+
+
+//查询--日期范围
     retrieveStatementListByRangeDate() {
       let para = new URLSearchParams()
       para.append('beginDate', this.filters.beginDate)
@@ -476,7 +525,7 @@ export default {
 
 
 
-//单日查询
+//查询--单日
     retrieveStatementListBySingleDate(){
       let para = new URLSearchParams()
       para.append('singleDate', this.filters.singleDate)
@@ -498,18 +547,15 @@ export default {
         })
     },
 
-
-
 //根据ID删除
     deleteStatementById(index, row) {
       this.$confirm('确定删除吗？ ', '提示', {
         type: 'warning'
       }).then(() => {
         this.listLoading = true
-        var rowId = row.id
+
         this.$axios
-          .delete('http://localhost:9080/statement/delete' + rowId, {})
-          //.get('http://localhost:9080/statement/delete' + rowId, {})
+          .delete('http://localhost:9080/statement/delete' + row.id, {})
           .then(res => {
             let isSuccess = res.data.success
 
@@ -525,7 +571,7 @@ export default {
               })
             }
 
-            this.retrieveStatementListByRangeDate()
+            this.retrieveAllStatementList()
             this.listLoading = false
           })
           .catch(err => {
@@ -539,8 +585,10 @@ export default {
     }
   },
 
+
+//
   mounted() {
-    this.retrieveStatementListByRangeDate()
+    this.retrieveAllStatementList()
   }
 }
 </script>
