@@ -81,6 +81,7 @@
           label="#"
           min-width="50"
         ></el-table-column>
+        
         <el-table-column
           prop="date"
           label="日期"
@@ -123,7 +124,7 @@
             <el-button
               size="mini"
               type="danger"
-              @click="handleUpdate"
+              @click="handleUpdate(scope.$index, scope.row)"
             >编辑</el-button
             >
           </template>
@@ -239,7 +240,7 @@
       <div slot="footer" class="dialog-footer">
         <el-button @click="createReset">取消</el-button>
         <el-button
-          @click.native="updateSubmit"
+          @click.native="updateSubmit(statement)"
           :loading="addLoading"
           type="primary"
         >确定</el-button
@@ -260,7 +261,7 @@ export default {
       statements: [],
       filters: {
         userName: ''
-      },
+        },
       total: 0,
       pageSize: 5,
       currentPage: 1,
@@ -318,18 +319,21 @@ export default {
       }
     },
 //更新--设置默认值
-    handleUpdate() {
+    handleUpdate(index,row) {
       this.dialogUpdateVisible = true
-      this.statement = {
-        date: '',
-        title: '',
-        content: '',
-        attachment: ''
-      }
+      //this.statement = {
+      //  date: '',
+      //  title: '',
+      //  content: '',
+      //  attachment: ''
+      //},
+      console.log(index, row)
+      //row是该行tableData对应的一行
+      this.statement = row
     },
 
 
-//添加 + 编辑  --文件按钮--本地
+//添加 + 编辑  --将文件存至本地
   handleFileChange(event, type) {
       console.log(this.statement[type])
       this.addLoading = true
@@ -400,15 +404,16 @@ export default {
 //更新--文件--添加已合并
 
 //更新--根据ID
-    updateStatementById(index, row) {
+    updateStatementById(updateScope) {
+      
+      console.log(updateScope)
       this.$confirm('确定更新吗？ ', '提示', {
         type: 'warning'
       }).then(() => {
         this.listLoading = true
 
         this.$axios
-          //.delete('http://localhost:9080/statement/update' + row.id, {})
-          .post('http://localhost:9080/statement/update' + row.id, this.statement)
+          .post('http://localhost:9080/statement/update' + updateScope.row.id, updateScope.statement)
           .then(res => {
             let isSuccess = res.data.success
 
@@ -430,10 +435,12 @@ export default {
           .catch(err => {
             console.log(err)
           })
+      }).catch(err => {
+          console.log(err)
       })
     },
 //更新--数据库
-    updateSubmit() {
+    updateSubmit(statement) {
       this.$refs.statement.validate(valid => {
         if (valid) {
           this.$confirm('确认提交？', '提示', {})
@@ -447,7 +454,7 @@ export default {
               // addPara.append('attachment', this.statement.attachment)
 
               this.$axios
-                .post('http://localhost:9080/statement/update' + row.id, this.statement)
+                .post('http://localhost:9080/statement/update' + statement.id, this.statement)
                 .then(res => {
                   console.log(res.data)
                   this.addLoading = false
@@ -473,6 +480,7 @@ export default {
           return false
         }
       })
+      this.retrieveAllStatementList()
     },
   
 
